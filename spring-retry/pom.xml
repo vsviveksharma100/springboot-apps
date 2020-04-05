@@ -45,6 +45,14 @@
 			<groupId>org.springframework.retry</groupId>
 			<artifactId>spring-retry</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-aspects</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context</artifactId>
+		</dependency>
 	</dependencies>
 	<properties>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
