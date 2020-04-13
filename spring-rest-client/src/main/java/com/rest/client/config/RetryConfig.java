@@ -7,8 +7,8 @@ public class RetryConfig {
 	}
 
 	private boolean enabled = false;
-	private int interval = 3;
-	private int count = 3;
+	private int interval = 3000;
+	private int attempts = 3;
 
 	public boolean isEnabled() {
 		return enabled;
@@ -26,11 +26,11 @@ public class RetryConfig {
 		this.interval = interval;
 	}
 
-	public int getCount() {
-		return count;
+	public int getAttempts() {
+		return attempts;
 	}
 
-	public void setCount(int count) {
-		this.count = count;
+	public void setAttempts(int attempts) {
+		this.attempts = attempts;
 	}
 }

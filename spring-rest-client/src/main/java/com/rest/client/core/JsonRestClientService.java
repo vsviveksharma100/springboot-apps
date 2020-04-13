@@ -2,7 +2,7 @@ package com.rest.client.core;
 
 import javax.annotation.PostConstruct;
 
-public class JsonRestClientService extends AbstractHttpClient {
+public abstract class JsonRestClientService extends AbstractHttpClient {
 
 	public JsonRestClientService() {
 	}

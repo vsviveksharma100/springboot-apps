@@ -11,7 +11,7 @@ import org.springframework.http.HttpHeaders;
 
 import com.rest.client.config.DataBinding;
 
-public class XmlRestClientService extends AbstractHttpClient {
+public abstract class XmlRestClientService extends AbstractHttpClient {
 
 	private Unmarshaller unmarshaller;
 
