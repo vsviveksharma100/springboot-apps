@@ -1,15 +1,17 @@
 package com.rest.client.core;
 
-import javax.annotation.PostConstruct;
+import com.rest.client.config.DataBinding;
 
 public abstract class JsonRestClientService extends AbstractHttpClient {
 
 	public JsonRestClientService() {
 	}
 
-	@PostConstruct
 	protected void onServiceInit() {
-		super.onServiceInit();
-		logger.info("JsonRestClientService >>>>> ServiceInit");
+	}
+
+	@Override
+	protected DataBinding getDataBinding() {
+		return DataBinding.JSON;
 	}
 }

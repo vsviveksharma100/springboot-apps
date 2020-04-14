@@ -15,7 +15,7 @@ public class AirQualityRestApiClient extends JsonRestClientService {
 	public CountriesResponse getCountries() {
 		logger.info("Request");
 		String url = getEndpointUrl();
-		return makeGetRequest(url, null, CountriesResponse.class);
+		return invokeGetRequest(url, null, CountriesResponse.class);
 	}
 
 	public void recover(Exception e, String url) {

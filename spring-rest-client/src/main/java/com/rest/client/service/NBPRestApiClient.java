@@ -15,8 +15,6 @@ public class NBPRestApiClient extends XmlRestClientService {
 
 	private String endpointUrl;
 
-	private static final String JAXB_PACKAGE = "generated";
-
 	public ArrayOfExchangeRatesTable getNbpRates() {
 
 		String url = getEndpointUrl();
@@ -24,7 +22,7 @@ public class NBPRestApiClient extends XmlRestClientService {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Accept", MediaType.APPLICATION_XML_VALUE);
 
-		return makeGetRequest(url, headers, ArrayOfExchangeRatesTable.class);
+		return invokeGetRequest(url, headers, ArrayOfExchangeRatesTable.class);
 	}
 
 	public String getEndpointUrl() {
@@ -33,11 +31,6 @@ public class NBPRestApiClient extends XmlRestClientService {
 
 	public void setEndpointUrl(String endpointUrl) {
 		this.endpointUrl = endpointUrl;
-	}
-
-	@Override
-	protected String getJaxbPackeges() {
-		return JAXB_PACKAGE;
 	}
 
 }

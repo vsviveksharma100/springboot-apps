@@ -1,12 +1,14 @@
 package com.rest.client.core;
 
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.retry.RecoveryCallback;
 import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
@@ -18,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 import com.rest.client.config.DataBinding;
 import com.rest.client.config.HttpConfig;
 import com.rest.client.config.RetryConfig;
+import com.rest.client.utils.AppUtils;
 
 public abstract class AbstractHttpClient {
 
@@ -26,31 +29,41 @@ public abstract class AbstractHttpClient {
 	private RestTemplate restTemplate;
 	private RetryTemplate retryTemplate;
 	private HttpConfig config;
-	private DataBinding dataBinding = DataBinding.JSON;
 	private boolean retryEnabled = false;
 
 	public AbstractHttpClient() {
 
 	}
 
-	protected void onServiceInit() {
-		logger.info("AbstractHttpClient >>>>> ServiceInit");
+	@PostConstruct
+	protected void onInit() {
+		configure();
 
-		SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-		factory.setConnectTimeout(5000);
-		factory.setReadTimeout(5000);
+		onServiceInit();
+	}
 
-		this.restTemplate = new RestTemplate(factory);
-
+	private void configure() {
+		configureRestTemplate();
 		configureRetry();
 	}
 
-	public HttpConfig getConfig() {
-		return config;
+	private void configureRestTemplate() {
+		if (config == null) {
+			logger.info("Http config is null. Rest Template will be configured with defalt values");
+			this.restTemplate = getRestTemplate(new HttpConfig());
+		} else {
+			this.restTemplate = getRestTemplate(config);
+		}
 	}
 
-	public void setConfig(HttpConfig config) {
-		this.config = config;
+	private RestTemplate getRestTemplate(HttpConfig httpConfig) {
+
+		HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
+		factory.setConnectionRequestTimeout(httpConfig.getConnectionTimeout());
+		factory.setConnectTimeout(httpConfig.getConnectTimeout());
+		factory.setReadTimeout(httpConfig.getReadTimeout());
+
+		return new RestTemplate(factory);
 	}
 
 	private void configureRetry() {
@@ -62,15 +75,36 @@ public abstract class AbstractHttpClient {
 		}
 	}
 
-	protected <V> V makeGetRequest(String url, HttpHeaders headers, Class<V> responseClass) {
-		HttpEntity<String> requestEntity = new HttpEntity<>(headers);
-		return makeHttpRequest(url, requestEntity, HttpMethod.GET, responseClass);
+	protected <V> V invokeGetRequest(String url, HttpHeaders headers, Class<V> responseClass) {
+
+		HttpEntity<String> requestEntity = getHttpEntity(headers, null);
+		return invokeHttpRequest(url, requestEntity, HttpMethod.GET, responseClass);
 	}
 
-	private <V> V makeHttpRequest(String url, HttpEntity<?> httpEntity, HttpMethod method, Class<V> responseClass) {
-		if (!isRetryEnabled()) {
-			ResponseEntity<V> responseEntity = restTemplate.exchange(url, method, httpEntity, responseClass);
-			return responseEntity.getBody();
+	protected <V, T> V invokePostRequest(String url, T payload, HttpHeaders headers, Class<V> responseClass) {
+
+		HttpEntity<T> requestEntity = getHttpEntity(headers, payload);
+		return invokeHttpRequest(url, requestEntity, HttpMethod.POST, responseClass);
+	}
+
+	protected <V, T> V invokePutRequest(String url, T payload, HttpHeaders headers, Class<V> responseClass) {
+
+		HttpEntity<T> requestEntity = getHttpEntity(headers, payload);
+		return invokeHttpRequest(url, requestEntity, HttpMethod.PUT, responseClass);
+	}
+
+	private <T> HttpEntity<T> getHttpEntity(HttpHeaders headers, T payload) {
+		if (payload == null)
+			return new HttpEntity<>(headers);
+
+		return new HttpEntity<>(payload, headers);
+	}
+
+	private <V> V invokeHttpRequest(String url, HttpEntity<?> httpEntity, HttpMethod method, Class<V> responseClass) {
+		validate(url, responseClass);
+
+		if (!retryEnabled) {
+			return invoke(url, httpEntity, method, responseClass);
 		} else {
 			V response = null;
 			try {
@@ -78,9 +112,7 @@ public abstract class AbstractHttpClient {
 
 					@Override
 					public V doWithRetry(RetryContext context) throws Exception {
-						ResponseEntity<V> responseEntity = restTemplate.exchange(url, method, httpEntity,
-								responseClass);
-						return responseEntity.getBody();
+						return invoke(url, httpEntity, method, responseClass);
 					}
 				}, new RecoveryCallback<V>() {
 
@@ -94,6 +126,11 @@ public abstract class AbstractHttpClient {
 			}
 			return response;
 		}
+	}
+
+	private <V> V invoke(String url, HttpEntity<?> httpEntity, HttpMethod method, Class<V> responseClass) {
+		ResponseEntity<V> responseEntity = restTemplate.exchange(url, method, httpEntity, responseClass);
+		return responseEntity.getBody();
 	}
 
 	private RetryTemplate getRetryTemplate(RetryConfig config) {
@@ -111,12 +148,32 @@ public abstract class AbstractHttpClient {
 		return template;
 	}
 
-	protected DataBinding getDataBinding() {
-		return dataBinding;
+	protected abstract DataBinding getDataBinding();
+
+	protected abstract void onServiceInit();
+
+	/**
+	 * Validate's request url and response class.
+	 * 
+	 * @param url
+	 * @param responseClass
+	 * @return
+	 */
+	private boolean validate(String url, Class<?> responseClass) {
+		if (AppUtils.isBlankStr(url))
+			throw new RuntimeException("Url must not be empty");
+
+		if (responseClass == null)
+			throw new RuntimeException("Response class must not be null");
+
+		return true;
 	}
 
-	public boolean isRetryEnabled() {
-		return retryEnabled;
+	public HttpConfig getConfig() {
+		return config;
 	}
 
+	public void setConfig(HttpConfig config) {
+		this.config = config;
+	}
 }
